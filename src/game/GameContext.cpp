@@ -959,18 +959,8 @@ void GameContext::setupEvent() { // todo necronomicon event
             info.hpAmount2 = 6;
             break;
 
-        case Event::LAB: {
-            Potion pReward[3];
-            int pCount = 2;
-            pReward[0] = getRandomPotion(potionRng, cc);
-            pReward[1] = getRandomPotion(potionRng, cc);
-            if (!unfavorable) {
-                pReward[2] = getRandomPotion(potionRng, cc);
-                ++pCount;
-            }
-            openCombatRewardScreen(Rewards(pReward, pCount));
+        case Event::LAB:
             break;
-        }
 
         case Event::MATCH_AND_KEEP: {
             if (disableMatchAndKeep) { // additional safeguard as it should also be prevented from spawning
@@ -2960,10 +2950,23 @@ void GameContext::chooseEventOption(int idx) {
             break;
         }
 
-        case Event::LAB:
-            // no actions to take
-            assert(false);
+        case Event::LAB: {
+            if (idx != 0) {
+                assert(false);
+            }
+
+            Potion pReward[3];
+            int pCount = 2;
+            pReward[0] = getRandomPotion(potionRng, cc);
+            pReward[1] = getRandomPotion(potionRng, cc);
+            if (ascension < 15) {
+                pReward[2] = getRandomPotion(potionRng, cc);
+                ++pCount;
+            }
+            regainControlAction = returnToMapAction;
+            openCombatRewardScreen(Rewards(pReward, pCount));
             break;
+        }
 
         case Event::THE_SSSSSERPENT: { // The Ssssserpent
             if (idx == 0) {
