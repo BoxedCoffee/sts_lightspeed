@@ -1132,9 +1132,17 @@ void GameContext::afterBattle() {
     switch (curRoom) {
         case Room::MONSTER: {
             regainControlAction = returnToMapAction;
-            auto reward = createCombatReward();
-            if (info.stolenGold != 0) { // todo stolen gold actually comes first in the list
-                reward.addGold(info.stolenGold);
+            Rewards reward;
+            if (info.stolenGold < 0) {
+                reward.addCardReward(createCardReward(Room::MONSTER));
+                if (hasRelic(RelicId::PRAYER_WHEEL)) {
+                    reward.addCardReward(createCardReward(Room::MONSTER));
+                }
+            } else {
+                reward = createCombatReward();
+                if (info.stolenGold > 0) {
+                    reward.addGold(info.stolenGold);
+                }
             }
             openCombatRewardScreen(reward);
             break;

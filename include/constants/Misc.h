@@ -34,7 +34,7 @@ namespace sts {
     static constexpr int LARGE_CHEST_CHANCE = 17;
 
     static constexpr int chestRelicTierChances[3][2] = {
-            {75,25},
+            {50,33},
             {35,50},
             {0,75},
     };

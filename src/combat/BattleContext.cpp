@@ -501,9 +501,18 @@ void BattleContext::exitBattle(GameContext &g) const {
             const bool escaped = m.curHp > 0 && (m.moveHistory[0] == MMID::LOOTER_ESCAPE ||
                                                  m.moveHistory[0] == MMID::MUGGER_ESCAPE);
 
-            if (canHaveStolenGold && !escaped) {
-                g.info.stolenGold += m.miscInfo;
+            if (!canHaveStolenGold) {
+                continue;
             }
+
+            if (escaped) {
+                if (m.miscInfo > 0) {
+                    g.info.stolenGold -= m.miscInfo;
+                }
+                continue;
+            }
+
+            g.info.stolenGold += m.miscInfo;
         }
     }
 
