@@ -283,11 +283,11 @@ RelicTier sts::returnRandomRelicTier(Random &relicRng, int act) {
 RelicTier sts::returnRandomRelicTierElite(Random &relicRng) {
     int roll = relicRng.random(99);
     if (roll < 50) {
-        return RelicTier::COMMON;
+        return RelicTier::UNCOMMON;
     } else if (roll > 82) {
         return RelicTier::RARE;
     } else {
-        return RelicTier::UNCOMMON;
+        return RelicTier::COMMON;
     }
 }
 

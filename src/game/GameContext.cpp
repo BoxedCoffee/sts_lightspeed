@@ -469,8 +469,16 @@ void GameContext::initRelics() {
         relicRng.randomLong();
     }
 
-    java::Collections::shuffle(commonRelicPool.begin(), commonRelicPool.end(), java::Random(relicRng.randomLong()));
-    java::Collections::shuffle(uncommonRelicPool.begin(), uncommonRelicPool.end(), java::Random(relicRng.randomLong()));
+    const auto common_seed = relicRng.randomLong();
+    auto uncommon_seed_rng = relicRng;
+    for (int i = 0; i < 51; ++i) {
+        uncommon_seed_rng.randomLong();
+    }
+    relicRng.randomLong();
+    const auto uncommon_seed = uncommon_seed_rng.randomLong();
+
+    java::Collections::shuffle(commonRelicPool.begin(), commonRelicPool.end(), java::Random(common_seed));
+    java::Collections::shuffle(uncommonRelicPool.begin(), uncommonRelicPool.end(), java::Random(uncommon_seed));
     java::Collections::shuffle(rareRelicPool.begin(), rareRelicPool.end(), java::Random(relicRng.randomLong()));
     java::Collections::shuffle(shopRelicPool.begin(), shopRelicPool.end(), java::Random(relicRng.randomLong()));
     java::Collections::shuffle(bossRelicPool.begin(), bossRelicPool.end(), java::Random(relicRng.randomLong()));
