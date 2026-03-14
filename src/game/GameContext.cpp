@@ -465,11 +465,15 @@ void GameContext::initRelics() {
             break;
     }
 
-    java::Collections::shuffle(commonRelicPool.begin(), commonRelicPool.end(), java::Random(relicRng.nextLong()));
-    java::Collections::shuffle(uncommonRelicPool.begin(), uncommonRelicPool.end(), java::Random(relicRng.nextLong()));
-    java::Collections::shuffle(rareRelicPool.begin(), rareRelicPool.end(), java::Random(relicRng.nextLong()));
-    java::Collections::shuffle(shopRelicPool.begin(), shopRelicPool.end(), java::Random(relicRng.nextLong()));
-    java::Collections::shuffle(bossRelicPool.begin(), bossRelicPool.end(), java::Random(relicRng.nextLong()));
+    for (int i = 0; i < 51; ++i) {
+        relicRng.randomLong();
+    }
+
+    java::Collections::shuffle(commonRelicPool.begin(), commonRelicPool.end(), java::Random(relicRng.randomLong()));
+    java::Collections::shuffle(uncommonRelicPool.begin(), uncommonRelicPool.end(), java::Random(relicRng.randomLong()));
+    java::Collections::shuffle(rareRelicPool.begin(), rareRelicPool.end(), java::Random(relicRng.randomLong()));
+    java::Collections::shuffle(shopRelicPool.begin(), shopRelicPool.end(), java::Random(relicRng.randomLong()));
+    java::Collections::shuffle(bossRelicPool.begin(), bossRelicPool.end(), java::Random(relicRng.randomLong()));
 
 }
 
@@ -1064,15 +1068,17 @@ void GameContext::setupTreasureRoom() {
     screenState = ScreenState::TREASURE_ROOM;
     info.chestSize = getRandomChestSize(treasureRng);
 
-    int roll = treasureRng.random(99);
-    info.haveGold = roll < chestGoldChances[static_cast<int>(info.chestSize)];
+    int goldRoll = treasureRng.random(99);
+    info.haveGold = goldRoll < chestGoldChances[static_cast<int>(info.chestSize)];
 
     const auto tierChances = chestRelicTierChances[static_cast<int>(info.chestSize)];
     const int commonChance = tierChances[static_cast<int>(RelicTier::COMMON)];
     const int uncommonChance = tierChances[static_cast<int>(RelicTier::UNCOMMON)];
-    if (roll < commonChance) {
+
+    int tierRoll = treasureRng.random(99);
+    if (tierRoll < commonChance) {
         info.tier = RelicTier::COMMON;
-    } else if (roll < commonChance + uncommonChance) {
+    } else if (tierRoll < commonChance + uncommonChance) {
         info.tier = RelicTier::UNCOMMON;
     } else {
         info.tier = RelicTier::RARE;
@@ -1909,10 +1915,6 @@ void GameContext::openTreasureRoomChest() {
         reward.addRelic(relic);
     }
 
-    if (!hasKey(Key::SAPPHIRE_KEY)) {
-        reward.sapphireKey = true;
-    }
-
     openCombatRewardScreen(reward);
 }
 
@@ -2318,7 +2320,7 @@ void GameContext::chooseNeowOption(const Neow::Option &o) {
             break;
 
         case Neow::Bonus::TEN_PERCENT_HP_BONUS:
-            maxHp += static_cast<int>(static_cast<float>(maxHp) * 0.1f);
+            playerIncreaseMaxHp(static_cast<int>(static_cast<float>(maxHp) * 0.1f));
             regainControlAction(*this);
             break;
 
@@ -2369,7 +2371,7 @@ void GameContext::chooseNeowOption(const Neow::Option &o) {
             break;
 
         case Neow::Bonus::TWENTY_PERCENT_HP_BONUS:
-            maxHp += static_cast<int>(static_cast<float>(maxHp) * 0.2f);
+            playerIncreaseMaxHp(static_cast<int>(static_cast<float>(maxHp) * 0.2f));
             regainControlAction(*this);
             break;
 
@@ -2898,8 +2900,13 @@ void GameContext::chooseEventOption(int idx) {
         case Event::WING_STATUE: {
             switch (idx) {
                 case 0:
-                    damagePlayer(7);
-                    openCardSelectScreen(CardSelectScreenType::REMOVE, 1);
+                    if (info.eventData == 0) {
+                        damagePlayer(7);
+                        info.eventData = 1;
+                    } else {
+                        info.eventData = 0;
+                        openCardSelectScreen(CardSelectScreenType::REMOVE, 1);
+                    }
                     break;
 
                 case 1:
@@ -3832,4 +3839,3 @@ void GameContext::regainControl() {
     }
     regainControlAction(*this);
 }
-

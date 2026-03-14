@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <vector>
 
 #include "game/Map.h"
 #include "game/Random.h"
@@ -722,14 +723,14 @@ void assignRoomsToNodes(Map &map, Room *rooms, int roomsSize) {
 void assignRooms(Map &map, Random &rng, int ascensionLevel) {
     RoomCounts counts = getRoomCountsAndAssignFixed(map);
 
-    Room rooms[counts.unassigned];
-    fillRoomArray(rooms, counts, ascensionLevel > 0 ? ELITE_ROOM_CHANCE_A1 : ELITE_ROOM_CHANCE_A0);
+    std::vector<Room> rooms(counts.unassigned);
+    fillRoomArray(rooms.data(), counts, ascensionLevel > 0 ? ELITE_ROOM_CHANCE_A1 : ELITE_ROOM_CHANCE_A0);
 
     for (int i=counts.unassigned; i>1; i--) {
         std::swap(rooms[i-1], rooms[rng.nextInt(i)]);
     }
 
-    assignRoomsToNodes(map, rooms, counts.unassigned);
+    assignRoomsToNodes(map, rooms.data(), counts.unassigned);
 }
 
 struct IntTuple {
@@ -757,4 +758,3 @@ void assignBurningElite(Map &map, Random &mapRng) {
     map.burningEliteX = eliteRooms.at(idx).x;
     map.burningEliteY = eliteRooms.at(idx).y;
 }
-

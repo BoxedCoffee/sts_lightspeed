@@ -117,10 +117,6 @@ bool isValidRestAction(const GameContext &gc, const search::GameAction a) {
         bits.set(1);
     }
 
-    if (!gc.hasKey(Key::RUBY_KEY)) {
-        bits.set(2);
-    }
-
     if (gc.relics.has(RelicId::GIRYA) && gc.relics.getRelicValue(RelicId::GIRYA) != 3) {
         bits.set(3);
     }
@@ -539,10 +535,6 @@ std::vector<search::GameAction> getAllRestActions(const sts::GameContext &gc) {
         actions.emplace_back(1);
     }
 
-    if (!gc.hasKey(Key::RUBY_KEY)) {
-        actions.emplace_back(2);
-    }
-
     if (gc.relics.has(RelicId::GIRYA) && gc.relics.getRelicValue(RelicId::GIRYA) != 3) {
         actions.emplace_back(3);
     }
@@ -811,11 +803,13 @@ int search::GameAction::getValidEventSelectBits(const GameContext &gc) {
             }
 
         case Event::WING_STATUE:
+            if (gc.info.eventData == 1) {
+                return 0x1;
+            }
             if (gc.deck.hasCardForWingStatue()) {
                 return 0x7;
-            } else {
-                return 0b101;
             }
+            return 0b101;
 
         case Event::LIVING_WALL:
             if (gc.deck.getUpgradeableCount() > 0) {

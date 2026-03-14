@@ -29,20 +29,20 @@ void Shop::setup(GameContext &gc) {
 void Shop::setupCards(GameContext &gc) {
     CardRarity rarities[5];
 
-    rarities[0] = rollCardRarityShop(gc.cardRng, gc.cardRarityFactor);
-    cards[0] = getRandomClassCardOfTypeAndRarity(gc.cardRng, gc.cc, CardType::ATTACK, rarities[0]);
+    rarities[0] = rollCardRarityShop(gc.cardRandomRng, 0);
+    cards[0] = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, CardType::ATTACK, rarities[0]);
     assignRandomCardExcluding(gc, CardType::ATTACK, cards[0].id, cards[1], rarities[1]);
 
-    rarities[2] = rollCardRarityShop(gc.cardRng, gc.cardRarityFactor);
-    cards[2] = getRandomClassCardOfTypeAndRarity(gc.cardRng, gc.cc, CardType::SKILL, rarities[2]);
+    rarities[2] = rollCardRarityShop(gc.cardRandomRng, 0);
+    cards[2] = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, CardType::SKILL, rarities[2]);
     assignRandomCardExcluding(gc, CardType::SKILL, cards[2].id, cards[3], rarities[3]);
 
-    rarities[4] = rollCardRarityShop(gc.cardRng, gc.cardRarityFactor);
+    rarities[4] = rollCardRarityShop(gc.cardRandomRng, 0);
     rarities[4] = rarities[4] == CardRarity::COMMON ? CardRarity::UNCOMMON : rarities[4];
-    cards[4] = getRandomClassCardOfTypeAndRarity(gc.cardRng, gc.cc, CardType::POWER, rarities[4]);
+    cards[4] = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, CardType::POWER, rarities[4]);
 
-    cards[5] = getColorlessCardFromPool(gc.cardRng, CardRarity::UNCOMMON);
-    cards[6] = getColorlessCardFromPool(gc.cardRng, CardRarity::RARE);
+    cards[5] = getColorlessCardFromPool(gc.cardRandomRng, CardRarity::UNCOMMON);
+    cards[6] = getColorlessCardFromPool(gc.cardRandomRng, CardRarity::RARE);
 
     for (int i = 0; i < 5; ++i) {
 
@@ -267,10 +267,9 @@ RelicTier Shop::rollRelicTier(Random &merchantRng) {
 void Shop::assignRandomCardExcluding(GameContext &gc, CardType type, CardId excludeId, Card &outCard, CardRarity &outRarity) {
     CardId id;
     do {
-        outRarity = rollCardRarityShop(gc.cardRng, gc.cardRarityFactor);
-        id = getRandomClassCardOfTypeAndRarity(gc.cardRng, gc.cc, type, outRarity);
+        outRarity = rollCardRarityShop(gc.cardRandomRng, 0);
+        id = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, type, outRarity);
     }while (id == excludeId);
 
     outCard = gc.previewObtainCard(id);
 }
-
