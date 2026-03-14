@@ -60,6 +60,12 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     }
 
     generateMonsters();
+
+    relicRng.randomLong();
+    relicRng.randomLong();
+    relicRng.randomLong();
+    relicRng.randomLong();
+
     initRelics();
     initPlayer();
 
@@ -465,20 +471,8 @@ void GameContext::initRelics() {
             break;
     }
 
-    for (int i = 0; i < 51; ++i) {
-        relicRng.randomLong();
-    }
-
-    const auto common_seed = relicRng.randomLong();
-    auto uncommon_seed_rng = relicRng;
-    for (int i = 0; i < 51; ++i) {
-        uncommon_seed_rng.randomLong();
-    }
-    relicRng.randomLong();
-    const auto uncommon_seed = uncommon_seed_rng.randomLong();
-
-    java::Collections::shuffle(commonRelicPool.begin(), commonRelicPool.end(), java::Random(common_seed));
-    java::Collections::shuffle(uncommonRelicPool.begin(), uncommonRelicPool.end(), java::Random(uncommon_seed));
+    java::Collections::shuffle(commonRelicPool.begin(), commonRelicPool.end(), java::Random(relicRng.randomLong()));
+    java::Collections::shuffle(uncommonRelicPool.begin(), uncommonRelicPool.end(), java::Random(relicRng.randomLong()));
     java::Collections::shuffle(rareRelicPool.begin(), rareRelicPool.end(), java::Random(relicRng.randomLong()));
     java::Collections::shuffle(shopRelicPool.begin(), shopRelicPool.end(), java::Random(relicRng.randomLong()));
     java::Collections::shuffle(bossRelicPool.begin(), bossRelicPool.end(), java::Random(relicRng.randomLong()));
@@ -1066,17 +1060,17 @@ void GameContext::setupTreasureRoom() {
     screenState = ScreenState::TREASURE_ROOM;
     info.chestSize = getRandomChestSize(treasureRng);
 
-    int goldRoll = treasureRng.random(99);
-    info.haveGold = goldRoll < chestGoldChances[static_cast<int>(info.chestSize)];
+    const int roll = treasureRng.random(99);
+
+    info.haveGold = roll < chestGoldChances[static_cast<int>(info.chestSize)];
 
     const auto tierChances = chestRelicTierChances[static_cast<int>(info.chestSize)];
     const int commonChance = tierChances[static_cast<int>(RelicTier::COMMON)];
     const int uncommonChance = tierChances[static_cast<int>(RelicTier::UNCOMMON)];
 
-    int tierRoll = treasureRng.random(99);
-    if (tierRoll < commonChance) {
+    if (roll < commonChance) {
         info.tier = RelicTier::COMMON;
-    } else if (tierRoll < commonChance + uncommonChance) {
+    } else if (roll < commonChance + uncommonChance) {
         info.tier = RelicTier::UNCOMMON;
     } else {
         info.tier = RelicTier::RARE;
@@ -1530,13 +1524,8 @@ RelicId GameContext::returnRandomRelic(RelicTier tier, bool shopRoom, bool fromF
             break;
     };
 
-    if (fromFront) {
-        retVal = vec->front();
-        vec->erase(vec->begin());
-    } else {
-        retVal = vec->back();
-        vec->erase(vec->end()-1);
-    }
+    retVal = vec->front();
+    vec->erase(vec->begin());
 
     bool canSpawn = relicCanSpawn(retVal, shopRoom);
     if (canSpawn) {
@@ -1840,7 +1829,7 @@ CardReward GameContext::createCardReward(Room room) {
 
     CardReward reward;
     for (int i = 0; i < numCards; ++i) {
-        if (rewardRarities[i] != CardRarity::RARE && cardRng.randomBoolean(cardUpgradedChance)) {
+        if (rewardRarities[i] != CardRarity::RARE && miscRng.randomBoolean(cardUpgradedChance)) {
             reward.push_back(Card(cards[i], true));
         } else {
             reward.push_back(previewObtainCard(cards[i]));

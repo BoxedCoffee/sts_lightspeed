@@ -301,7 +301,9 @@ void Player::hpWasLost(BattleContext &bc, int amount, bool selfDamage) {
     }
 
     if (hasRelic<RelicId::SELF_FORMING_CLAY>()) {
-        buff<PS::NEXT_TURN_BLOCK>(3);
+        if (!hasStatus<PS::NEXT_TURN_BLOCK>()) {
+            buff<PS::NEXT_TURN_BLOCK>(3);
+        }
     }
 
     if (hasRelic<RelicId::RUNIC_CUBE>()) {
@@ -884,7 +886,6 @@ namespace sts {
 
 
 }
-
 
 
 
