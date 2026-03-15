@@ -502,6 +502,8 @@ void GameContext::initRelics() {
     java::Collections::shuffle(shopRelicPool.begin(), shopRelicPool.end(), java::Random(relicRng.randomLong()));
     java::Collections::shuffle(bossRelicPool.begin(), bossRelicPool.end(), java::Random(relicRng.randomLong()));
 
+    relicRng.randomLong();
+
 }
 
 
