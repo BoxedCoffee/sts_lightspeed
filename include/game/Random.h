@@ -37,10 +37,15 @@ namespace java {
             if ((bound & m) == 0)  // i.e., bound is a power of 2
                 r = static_cast<int32_t>( ((bound * static_cast<std::uint64_t>(r)) >> 31) );
             else {
-                for (int32_t u = r;
-                     u - (r = u % bound) + m < 0;
-                     u = next(31))
-                    ;
+                std::uint32_t u = static_cast<std::uint32_t>(r);
+                while (true) {
+                    r = static_cast<int32_t>(u % static_cast<std::uint32_t>(bound));
+                    const std::uint32_t sum = u - static_cast<std::uint32_t>(r) + static_cast<std::uint32_t>(m);
+                    if (static_cast<int32_t>(sum) >= 0) {
+                        break;
+                    }
+                    u = static_cast<std::uint32_t>(next(31));
+                }
             }
             return r;
         }

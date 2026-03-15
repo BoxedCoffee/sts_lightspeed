@@ -58,14 +58,14 @@ void Shop::setupCards(GameContext &gc) {
 }
 
 void Shop::setupRelics(GameContext &gc) {
-    relics[0] = gc.returnRandomRelic(rollRelicTier(gc.merchantRng), true, false);
+    relics[0] = gc.returnRandomRelic(RelicTier::SHOP, true, false);
     relicPrice(0) = std::round(getRelicBasePrice(relics[0]) * gc.merchantRng.random(0.95f, 1.05f));
 
-    relics[1] = gc.returnRandomRelic(rollRelicTier(gc.merchantRng), true, false);
+    relics[1] = gc.returnRandomRelic(RelicTier::SHOP, true, false);
     relicPrice(1) = std::round(getRelicBasePrice(relics[1]) * gc.merchantRng.random(0.95f, 1.05f));
 
     relics[2] = gc.returnRandomRelic(RelicTier::SHOP, true, false);
-    relicPrice(2) = std::round(relicTierPrices[(int)RelicTier::SHOP] * gc.merchantRng.random(0.95f, 1.05f));
+    relicPrice(2) = std::round(getRelicBasePrice(relics[2]) * gc.merchantRng.random(0.95f, 1.05f));
 }
 
 void Shop::setupPotions(GameContext &gc) {

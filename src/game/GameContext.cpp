@@ -60,12 +60,6 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     }
 
     generateMonsters();
-
-    relicRng.randomLong();
-    relicRng.randomLong();
-    relicRng.randomLong();
-    relicRng.randomLong();
-
     initRelics();
     initPlayer();
 
@@ -469,6 +463,37 @@ void GameContext::initRelics() {
 
         default:
             break;
+    }
+
+    const RelicId removedOnStart[] {
+            RelicId::AKABEKO,
+            RelicId::SMILING_MASK,
+            RelicId::OMAMORI,
+            RelicId::ART_OF_WAR,
+            RelicId::CERAMIC_FISH,
+            RelicId::TINY_CHEST,
+            RelicId::BLUE_CANDLE,
+            RelicId::STRIKE_DUMMY,
+            RelicId::SINGING_BOWL,
+            RelicId::THE_COURIER,
+            RelicId::SHOVEL,
+            RelicId::TURNIP,
+            RelicId::PRAYER_WHEEL,
+            RelicId::DEAD_BRANCH,
+            RelicId::DU_VU_DOLL,
+            RelicId::PANDORAS_BOX,
+    };
+
+    auto removeAll = [](std::vector<RelicId> &pool, RelicId rid) {
+        pool.erase(std::remove(pool.begin(), pool.end(), rid), pool.end());
+    };
+
+    for (auto rid : removedOnStart) {
+        removeAll(commonRelicPool, rid);
+        removeAll(uncommonRelicPool, rid);
+        removeAll(rareRelicPool, rid);
+        removeAll(shopRelicPool, rid);
+        removeAll(bossRelicPool, rid);
     }
 
     java::Collections::shuffle(commonRelicPool.begin(), commonRelicPool.end(), java::Random(relicRng.randomLong()));
