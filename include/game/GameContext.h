@@ -183,6 +183,14 @@ namespace sts {
         std::vector<RelicId> shopRelicPool;
         std::vector<RelicId> bossRelicPool;
 
+        std::vector<CardId> commonCardPool;
+        std::vector<CardId> uncommonCardPool;
+        std::vector<CardId> rareCardPool;
+
+        std::vector<CardId> srcCommonCardPool;
+        std::vector<CardId> srcUncommonCardPool;
+        std::vector<CardId> srcRareCardPool;
+
         std::array<CardId, 35> colorlessCardPool = baseColorlessPool;
 
         int monsterListOffset = 0;
@@ -257,6 +265,7 @@ namespace sts {
         // initialization
         void initRelics();
         void initPlayer();
+        void initCardPools();
         void generateMonsters();
         void generateWeakMonsters();
         void generateStrongMonsters();

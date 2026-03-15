@@ -9,6 +9,7 @@
 
 #include "constants/RelicPools.h"
 #include "constants/CardPools.h"
+#include "constants/JavaCardLibraryOrder.h"
 #include "combat/BattleContext.h"
 #include "game/SaveFile.h"
 #include "game/Game.h"
@@ -34,6 +35,7 @@ SelectScreenCard::SelectScreenCard(const Card &card, int deckIdx) : card(card), 
 
 GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     : seed(seed),
+    aiRng(seed),
     neowRng(seed),
     treasureRng(seed),
     eventRng(seed),
@@ -43,6 +45,7 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     cardRandomRng(seed),
     merchantRng(seed),
     monsterRng(seed),
+    monsterHpRng(seed),
     shuffleRng(seed),
     miscRng(seed),
     mathUtilRng(seed-897897), // uses a time based seed -_-
@@ -62,6 +65,7 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     generateMonsters();
     initRelics();
     initPlayer();
+    initCardPools();
 
     potionCapacity = ascension < 11 ? 3 : 2;
     std::fill(potions.begin(), potions.end(), Potion::EMPTY_POTION_SLOT);
@@ -69,6 +73,42 @@ GameContext::GameContext(CharacterClass cc, std::uint64_t seed, int ascension)
     curEvent = Event::NEOW;
     info.neowRewards = Neow::getOptions(neowRng);
     screenState = ScreenState::EVENT_SCREEN;
+}
+
+void GameContext::initCardPools() {
+    commonCardPool.clear();
+    uncommonCardPool.clear();
+    rareCardPool.clear();
+    srcCommonCardPool.clear();
+    srcUncommonCardPool.clear();
+    srcRareCardPool.clear();
+
+    std::vector<CardId> common_in_order;
+    std::vector<CardId> uncommon_in_order;
+    std::vector<CardId> rare_in_order;
+
+    for (const CardId cid : JavaCardLibraryOrder::cards) {
+        if (getCardColor(cid) != static_cast<CardColor>(cc)) {
+            continue;
+        }
+
+        const auto rarity = getCardRarity(cid);
+        if (rarity == CardRarity::COMMON) {
+            common_in_order.push_back(cid);
+        } else if (rarity == CardRarity::UNCOMMON) {
+            uncommon_in_order.push_back(cid);
+        } else if (rarity == CardRarity::RARE) {
+            rare_in_order.push_back(cid);
+        }
+    }
+
+    commonCardPool.assign(common_in_order.rbegin(), common_in_order.rend());
+    uncommonCardPool.assign(uncommon_in_order.rbegin(), uncommon_in_order.rend());
+    rareCardPool.assign(rare_in_order.rbegin(), rare_in_order.rend());
+
+    srcCommonCardPool = commonCardPool;
+    srcUncommonCardPool = uncommonCardPool;
+    srcRareCardPool = rareCardPool;
 }
 
 void GameContext::initFromSave(const SaveFile &s) {
@@ -790,7 +830,6 @@ void GameContext::transitionToMapNode(int mapNodeX) {
     const auto r = Random(seed + floorNum);
     miscRng = r;
     shuffleRng = r;
-    cardRandomRng = r;
 
     regainControlAction = [](auto &gs) {
         gs.screenState = ScreenState::MAP_SCREEN;
@@ -1842,7 +1881,20 @@ CardReward GameContext::createCardReward(Room room) {
             if (hasRelic(RelicId::PRISMATIC_SHARD) && !disablePrismaticShard) {
                 id = getAnyColorCard(cardRng, rarity);
             } else {
-                id = getRandomClassCardOfRarity(cardRng, cc, rarity);
+                const std::vector<CardId> *pool = nullptr;
+                if (rarity == CardRarity::COMMON) {
+                    pool = &commonCardPool;
+                } else if (rarity == CardRarity::UNCOMMON) {
+                    pool = &uncommonCardPool;
+                } else if (rarity == CardRarity::RARE) {
+                    pool = &rareCardPool;
+                }
+
+                if (pool == nullptr || pool->empty()) {
+                    id = CardId::INVALID;
+                } else {
+                    id = (*pool)[cardRng.random(static_cast<int>(pool->size()) - 1)];
+                }
             }
 
             hasDuplicate = false;
@@ -1860,10 +1912,12 @@ CardReward GameContext::createCardReward(Room room) {
 
     CardReward reward;
     for (int i = 0; i < numCards; ++i) {
-        if (rewardRarities[i] != CardRarity::RARE && miscRng.randomBoolean(cardUpgradedChance)) {
-            reward.push_back(Card(cards[i], true));
+        Card card(cards[i]);
+        if (rewardRarities[i] != CardRarity::RARE && cardRng.randomBoolean(cardUpgradedChance) && card.canUpgrade()) {
+            card.upgrade();
+            reward.push_back(card);
         } else {
-            reward.push_back(previewObtainCard(cards[i]));
+            reward.push_back(previewObtainCard(card));
         }
     }
     return reward;

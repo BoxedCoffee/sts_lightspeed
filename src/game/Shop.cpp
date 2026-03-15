@@ -2,7 +2,10 @@
 // Created by gamerpuppy on 7/11/2021.
 //
 
+#include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <vector>
 #include "game/Shop.h"
 #include "game/GameContext.h"
 #include "game/Game.h"
@@ -31,26 +34,93 @@ void Shop::setup(GameContext &gc) {
 }
 
 void Shop::setupCards(GameContext &gc) {
-    CardRarity rarities[5];
+    auto roll_rarity = [&]() -> CardRarity {
+        return rollCardRarityShop(gc.cardRng, gc.cardRarityFactor);
+    };
 
-    rarities[0] = rollCardRarityShop(gc.cardRandomRng, 0);
-    cards[0] = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, CardType::ATTACK, rarities[0]);
-    assignRandomCardExcluding(gc, CardType::ATTACK, cards[0].id, cards[1], rarities[1]);
+    auto get_from_pool = [&](CardRarity rarity, CardType type) -> CardId {
+        std::vector<CardId> pool;
 
-    rarities[2] = rollCardRarityShop(gc.cardRandomRng, 0);
-    cards[2] = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, CardType::SKILL, rarities[2]);
-    assignRandomCardExcluding(gc, CardType::SKILL, cards[2].id, cards[3], rarities[3]);
+        const std::vector<CardId> *src = nullptr;
+        if (rarity == CardRarity::COMMON) {
+            src = &gc.commonCardPool;
+        } else if (rarity == CardRarity::UNCOMMON) {
+            src = &gc.uncommonCardPool;
+        } else if (rarity == CardRarity::RARE) {
+            src = &gc.rareCardPool;
+        }
 
-    rarities[4] = rollCardRarityShop(gc.cardRandomRng, 0);
-    rarities[4] = rarities[4] == CardRarity::COMMON ? CardRarity::UNCOMMON : rarities[4];
-    cards[4] = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, CardType::POWER, rarities[4]);
+        if (src == nullptr) {
+            return CardId::INVALID;
+        }
 
-    cards[5] = getColorlessCardFromPool(gc.cardRandomRng, CardRarity::UNCOMMON);
-    cards[6] = getColorlessCardFromPool(gc.cardRandomRng, CardRarity::RARE);
+        for (const CardId cid : *src) {
+            if (getCardType(cid) != type) {
+                continue;
+            }
+            pool.push_back(cid);
+        }
+
+        std::sort(pool.begin(), pool.end(), [](CardId a, CardId b) {
+            return std::strcmp(getCardStringId(a), getCardStringId(b)) < 0;
+        });
+
+        if (pool.empty()) {
+            return CardId::INVALID;
+        }
+
+        const int idx = gc.cardRng.random(static_cast<int>(pool.size()) - 1);
+        return pool[idx];
+    };
+
+    auto draw_colored = [&](CardType type, CardId exclude) -> Card {
+        CardId id;
+        do {
+            CardRarity rarity = roll_rarity();
+            if (type == CardType::POWER) {
+                if (rarity == CardRarity::COMMON) {
+                    rarity = CardRarity::UNCOMMON;
+                }
+                if (rarity == CardRarity::UNCOMMON) {
+                    id = get_from_pool(rarity, type);
+                    if (id == CardId::INVALID) {
+                        id = get_from_pool(CardRarity::RARE, type);
+                    }
+                } else {
+                    id = get_from_pool(rarity, type);
+                }
+            } else {
+                id = get_from_pool(rarity, type);
+            }
+        } while (id == CardId::INVALID || getCardColor(id) == CardColor::COLORLESS || id == exclude);
+        return gc.previewObtainCard(Card(id));
+    };
+
+    auto draw_colorless = [&](CardRarity rarity) -> Card {
+        std::vector<CardId> pool;
+        const int groupSize = ColorlessRarityCardPool::getGroupSize(rarity);
+        for (int i = 0; i < groupSize; ++i) {
+            pool.push_back(ColorlessRarityCardPool::getCardAt(rarity, i));
+        }
+        std::sort(pool.begin(), pool.end(), [](CardId a, CardId b) {
+            return std::strcmp(getCardStringId(a), getCardStringId(b)) < 0;
+        });
+        const int idx = gc.cardRng.random(static_cast<int>(pool.size()) - 1);
+        return gc.previewObtainCard(Card(pool[idx]));
+    };
+
+    cards[0] = draw_colored(CardType::ATTACK, CardId::INVALID);
+    cards[1] = draw_colored(CardType::ATTACK, cards[0].id);
+    cards[2] = draw_colored(CardType::SKILL, CardId::INVALID);
+    cards[3] = draw_colored(CardType::SKILL, cards[2].id);
+    cards[4] = draw_colored(CardType::POWER, CardId::INVALID);
+
+    cards[5] = draw_colorless(CardRarity::UNCOMMON);
+    cards[6] = draw_colorless(CardRarity::RARE);
 
     for (int i = 0; i < 5; ++i) {
-
-        float tmpPrice = cardRarityPrices[(int)rarities[i]] * gc.merchantRng.random(0.9f, 1.1f);
+        const auto rarity = cards[i].getRarity();
+        float tmpPrice = cardRarityPrices[static_cast<int>(rarity)] * gc.merchantRng.random(0.9f, 1.1f);
         prices[i] = static_cast<int>(tmpPrice);
     }
 
@@ -271,8 +341,8 @@ RelicTier Shop::rollRelicTier(Random &merchantRng) {
 void Shop::assignRandomCardExcluding(GameContext &gc, CardType type, CardId excludeId, Card &outCard, CardRarity &outRarity) {
     CardId id;
     do {
-        outRarity = rollCardRarityShop(gc.cardRandomRng, 0);
-        id = getRandomClassCardOfTypeAndRarity(gc.cardRandomRng, gc.cc, type, outRarity);
+        outRarity = rollCardRarityShop(gc.cardRng, 0);
+        id = getRandomClassCardOfTypeAndRarity(gc.cardRng, gc.cc, type, outRarity);
     }while (id == excludeId);
 
     outCard = gc.previewObtainCard(id);
