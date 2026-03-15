@@ -3344,25 +3344,44 @@ void Monster::largeSlimeSplit(BattleContext &bc, const MonsterId mediumSlimeType
     assert(hp > 0);
     assert(bc.monsters.monstersAlive > 0);
 #endif
-    const auto idx1 = placeIdx;
-    const auto idx2 = placeIdx + 1;
-
-    bc.monsters.arr[idx1] = Monster();
-    bc.monsters.arr[idx1].initSpawnedMonster(bc, mediumSlimeType, idx1, hp);
-
-    bc.monsters.arr[idx2] = Monster();
-    bc.monsters.arr[idx2].initSpawnedMonster(bc, mediumSlimeType, idx2, hp);
-
-    if (bc.player.hasRelic<R::PHILOSOPHERS_STONE>()) {
-        bc.monsters.arr[idx1].buff<MS::STRENGTH>(1);
-        bc.monsters.arr[idx2].buff<MS::STRENGTH>(1);
+    int center_idx = placeIdx;
+    if (center_idx == 0) {
+        for (int i = bc.monsters.monsterCount - 1; i >= 0; --i) {
+            bc.monsters.arr[i + 1] = bc.monsters.arr[i];
+            bc.monsters.arr[i + 1].idx = i + 1;
+        }
+        bc.monsters.extraRollMoveOnTurn <<= 1;
+        bc.monsters.skipTurn <<= 1;
+        center_idx = 1;
+        bc.monsterTurnIdx++;
     }
 
-    bc.monsters.monstersAlive++;
-    bc.monsters.monsterCount = std::min(bc.monsters.monsterCount+1, 4);
+    bc.monsters.arr[center_idx].curHp = 0;
+    bc.monsters.arr[center_idx].block = 0;
+    bc.monsters.arr[center_idx].halfDead = false;
+    bc.monsters.arr[center_idx].isEscapingB = false;
+
+    --bc.monsters.monstersAlive;
+
+    const int left_idx = center_idx - 1;
+    const int right_idx = center_idx + 1;
+
+    bc.monsters.arr[left_idx] = Monster();
+    bc.monsters.arr[left_idx].initSpawnedMonster(bc, mediumSlimeType, left_idx, hp);
+
+    bc.monsters.arr[right_idx] = Monster();
+    bc.monsters.arr[right_idx].initSpawnedMonster(bc, mediumSlimeType, right_idx, hp);
+
+    if (bc.player.hasRelic<R::PHILOSOPHERS_STONE>()) {
+        bc.monsters.arr[left_idx].buff<MS::STRENGTH>(1);
+        bc.monsters.arr[right_idx].buff<MS::STRENGTH>(1);
+    }
+
+    bc.monsters.monstersAlive += 2;
+    bc.monsters.monsterCount = std::min(bc.monsters.monsterCount + 2, 5);
 
     bc.noOpRollMove();
-    bc.monsters.extraRollMoveOnTurn.set(idx2, true);
+    bc.monsters.extraRollMoveOnTurn.set(right_idx, true);
     bc.monsterTurnIdx++;
 }
 

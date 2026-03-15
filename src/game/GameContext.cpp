@@ -502,8 +502,6 @@ void GameContext::initRelics() {
     java::Collections::shuffle(shopRelicPool.begin(), shopRelicPool.end(), java::Random(relicRng.randomLong()));
     java::Collections::shuffle(bossRelicPool.begin(), bossRelicPool.end(), java::Random(relicRng.randomLong()));
 
-    relicRng.randomLong();
-
 }
 
 
@@ -1502,63 +1500,69 @@ bool GameContext::obtainRelic(RelicId r) {
 
 
 RelicId GameContext::returnRandomRelic(RelicTier tier, bool shopRoom, bool fromFront) {
-    RelicId retVal = RelicId::INVALID;
-    std::vector<RelicId> *vec;
-
-    switch(tier) {
-
-        case RelicTier::COMMON:
-            if (commonRelicPool.empty()) {
-                retVal = returnRandomRelic(RelicTier::UNCOMMON, shopRoom);
-            } else {
-                vec = &commonRelicPool;
-            }
-            break;
-
-        case RelicTier::UNCOMMON:
-            if (uncommonRelicPool.empty()) {
-                retVal = returnRandomRelic(RelicTier::RARE, shopRoom);
-            } else {
-                vec = &uncommonRelicPool;
-            }
-            break;
-
-        case RelicTier::RARE:
-            if (rareRelicPool.empty()) {
-                retVal = RelicId::CIRCLET;
-            } else {
-                vec = &rareRelicPool;
-            }
-            break;
-
-        case RelicTier::SHOP:
-            if (shopRelicPool.empty()) {
-                retVal = returnRandomRelic(RelicTier::UNCOMMON, shopRoom);
-            } else {
-                vec = &shopRelicPool;
-            }
-            break;
-
-        case RelicTier::BOSS:
-            if (bossRelicPool.empty()) {
-                retVal = RelicId::RED_CIRCLET;
-            } else {
-                vec = &bossRelicPool;
-            }
-            break;
-
-        default:
-            break;
+    auto pop = [&](std::vector<RelicId> &pool) -> RelicId {
+        RelicId out;
+        if (fromFront) {
+            out = pool.front();
+            pool.erase(pool.begin());
+        } else {
+            out = pool.back();
+            pool.pop_back();
+        }
+        return out;
     };
 
-    retVal = vec->front();
-    vec->erase(vec->begin());
+    while (true) {
+        std::vector<RelicId> *pool = nullptr;
 
-    bool canSpawn = relicCanSpawn(retVal, shopRoom);
-    if (canSpawn) {
-        return retVal;
-    } else {
-        return returnRandomRelic(tier, shopRoom, false);
+        switch (tier) {
+            case RelicTier::COMMON:
+                if (commonRelicPool.empty()) {
+                    tier = RelicTier::UNCOMMON;
+                    continue;
+                }
+                pool = &commonRelicPool;
+                break;
+
+            case RelicTier::UNCOMMON:
+                if (uncommonRelicPool.empty()) {
+                    tier = RelicTier::RARE;
+                    continue;
+                }
+                pool = &uncommonRelicPool;
+                break;
+
+            case RelicTier::RARE:
+                if (rareRelicPool.empty()) {
+                    return RelicId::CIRCLET;
+                }
+                pool = &rareRelicPool;
+                break;
+
+            case RelicTier::SHOP:
+                if (shopRelicPool.empty()) {
+                    tier = RelicTier::UNCOMMON;
+                    continue;
+                }
+                pool = &shopRelicPool;
+                break;
+
+            case RelicTier::BOSS:
+                if (bossRelicPool.empty()) {
+                    return RelicId::RED_CIRCLET;
+                }
+                pool = &bossRelicPool;
+                break;
+
+            default:
+                return RelicId::INVALID;
+        }
+
+        RelicId retVal = pop(*pool);
+        if (relicCanSpawn(retVal, shopRoom)) {
+            return retVal;
+        }
+        fromFront = false;
     }
 }
 

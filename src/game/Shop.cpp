@@ -9,13 +9,17 @@
 
 using namespace sts;
 
+static int libgdxRoundPositive(float x) {
+    return static_cast<int>(x + 0.5f);
+}
+
 void Shop::setup(GameContext &gc) {
     setupCards(gc);
     setupRelics(gc);
     setupPotions(gc);
 
     if (gc.ascension >= 16) {
-        applyDiscount(0.80f);
+        applyDiscount(1.10f);
     }
     if (gc.hasRelic(RelicId::THE_COURIER)) {
         applyDiscount(0.80f);
@@ -58,14 +62,14 @@ void Shop::setupCards(GameContext &gc) {
 }
 
 void Shop::setupRelics(GameContext &gc) {
-    relics[0] = gc.returnRandomRelic(RelicTier::SHOP, true, false);
-    relicPrice(0) = std::round(getRelicBasePrice(relics[0]) * gc.merchantRng.random(0.95f, 1.05f));
+    relics[0] = gc.returnRandomRelic(rollRelicTier(gc.merchantRng), true, false);
+    relicPrice(0) = libgdxRoundPositive(getRelicBasePrice(relics[0]) * gc.merchantRng.random(0.95f, 1.05f));
 
-    relics[1] = gc.returnRandomRelic(RelicTier::SHOP, true, false);
-    relicPrice(1) = std::round(getRelicBasePrice(relics[1]) * gc.merchantRng.random(0.95f, 1.05f));
+    relics[1] = gc.returnRandomRelic(rollRelicTier(gc.merchantRng), true, false);
+    relicPrice(1) = libgdxRoundPositive(getRelicBasePrice(relics[1]) * gc.merchantRng.random(0.95f, 1.05f));
 
     relics[2] = gc.returnRandomRelic(RelicTier::SHOP, true, false);
-    relicPrice(2) = std::round(getRelicBasePrice(relics[2]) * gc.merchantRng.random(0.95f, 1.05f));
+    relicPrice(2) = libgdxRoundPositive(getRelicBasePrice(relics[2]) * gc.merchantRng.random(0.95f, 1.05f));
 }
 
 void Shop::setupPotions(GameContext &gc) {
@@ -73,13 +77,13 @@ void Shop::setupPotions(GameContext &gc) {
         potions[i] = returnRandomPotion(gc.potionRng, gc.cc);
         const auto rarity = potionRarities[(int)potions[i]];
         const int basePrice = potionRarityPrices[(int)rarity];
-        potionPrice(i) = std::round(basePrice * gc.merchantRng.random(0.95f, 1.05f));
+        potionPrice(i) = libgdxRoundPositive(basePrice * gc.merchantRng.random(0.95f, 1.05f));
     }
 }
 
 void Shop::applyDiscount(float factor) {
     for (int & price : prices) {
-        price = static_cast<int>(std::round(factor* static_cast<float>(price)));
+        price = libgdxRoundPositive(factor * static_cast<float>(price));
     }
 }
 
@@ -224,13 +228,13 @@ int Shop::getRemoveCost(const GameContext &gc) {
     }
 
     if (gc.hasRelic(RelicId::THE_COURIER) && gc.hasRelic(RelicId::MEMBERSHIP_CARD)) {
-        cost = std::round(static_cast<float>(cost) * COURIER_FACTOR * MEMBERSHIP_CARD_FACTOR);
+        cost = libgdxRoundPositive(static_cast<float>(cost) * COURIER_FACTOR * MEMBERSHIP_CARD_FACTOR);
 
     } else if (gc.hasRelic(RelicId::THE_COURIER)) {
-        cost = std::round(static_cast<float>(cost) * COURIER_FACTOR);
+        cost = libgdxRoundPositive(static_cast<float>(cost) * COURIER_FACTOR);
 
     } else if (gc.hasRelic(RelicId::MEMBERSHIP_CARD)) {
-        cost = std::round(static_cast<float>(cost) * MEMBERSHIP_CARD_FACTOR);
+        cost = libgdxRoundPositive(static_cast<float>(cost) * MEMBERSHIP_CARD_FACTOR);
     }
     return cost;
 }
