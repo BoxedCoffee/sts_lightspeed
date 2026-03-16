@@ -83,29 +83,112 @@ void GameContext::initCardPools() {
     srcUncommonCardPool.clear();
     srcRareCardPool.clear();
 
-    std::vector<CardId> common_in_order;
-    std::vector<CardId> uncommon_in_order;
-    std::vector<CardId> rare_in_order;
+    if (cc == CharacterClass::IRONCLAD) {
+        static constexpr std::array<CardId, 19> kCommon {
+            CardId::ANGER,
+            CardId::CLEAVE,
+            CardId::WARCRY,
+            CardId::FLEX,
+            CardId::IRON_WAVE,
+            CardId::BODY_SLAM,
+            CardId::TRUE_GRIT,
+            CardId::SHRUG_IT_OFF,
+            CardId::CLASH,
+            CardId::THUNDERCLAP,
+            CardId::POMMEL_STRIKE,
+            CardId::TWIN_STRIKE,
+            CardId::CLOTHESLINE,
+            CardId::ARMAMENTS,
+            CardId::HEADBUTT,
+            CardId::WILD_STRIKE,
+            CardId::HEAVY_BLADE,
+            CardId::PERFECTED_STRIKE,
+            CardId::SWORD_BOOMERANG,
+        };
 
-    for (const CardId cid : JavaCardLibraryOrder::cards) {
-        if (getCardColor(cid) != static_cast<CardColor>(cc)) {
-            continue;
+        static constexpr std::array<CardId, 35> kUncommon {
+            CardId::EVOLVE,
+            CardId::UPPERCUT,
+            CardId::GHOSTLY_ARMOR,
+            CardId::FIRE_BREATHING,
+            CardId::DROPKICK,
+            CardId::CARNAGE,
+            CardId::BLOODLETTING,
+            CardId::RUPTURE,
+            CardId::SECOND_WIND,
+            CardId::SEARING_BLOW,
+            CardId::BATTLE_TRANCE,
+            CardId::ENTRENCH,
+            CardId::RAGE,
+            CardId::FEEL_NO_PAIN,
+            CardId::DISARM,
+            CardId::SEEING_RED,
+            CardId::DARK_EMBRACE,
+            CardId::COMBUST,
+            CardId::WHIRLWIND,
+            CardId::SEVER_SOUL,
+            CardId::RAMPAGE,
+            CardId::SHOCKWAVE,
+            CardId::METALLICIZE,
+            CardId::BURNING_PACT,
+            CardId::PUMMEL,
+            CardId::FLAME_BARRIER,
+            CardId::BLOOD_FOR_BLOOD,
+            CardId::INTIMIDATE,
+            CardId::HEMOKINESIS,
+            CardId::RECKLESS_CHARGE,
+            CardId::INFERNAL_BLADE,
+            CardId::DUAL_WIELD,
+            CardId::POWER_THROUGH,
+            CardId::INFLAME,
+            CardId::SPOT_WEAKNESS,
+        };
+
+        static constexpr std::array<CardId, 15> kRare {
+            CardId::DOUBLE_TAP,
+            CardId::DEMON_FORM,
+            CardId::BLUDGEON,
+            CardId::FEED,
+            CardId::LIMIT_BREAK,
+            CardId::CORRUPTION,
+            CardId::BARRICADE,
+            CardId::FIEND_FIRE,
+            CardId::BERSERK,
+            CardId::IMPERVIOUS,
+            CardId::JUGGERNAUT,
+            CardId::BRUTALITY,
+            CardId::REAPER,
+            CardId::OFFERING,
+            CardId::IMMOLATE,
+        };
+
+        commonCardPool.insert(commonCardPool.end(), kCommon.begin(), kCommon.end());
+        uncommonCardPool.insert(uncommonCardPool.end(), kUncommon.begin(), kUncommon.end());
+        rareCardPool.insert(rareCardPool.end(), kRare.begin(), kRare.end());
+
+    } else {
+        std::vector<CardId> common_in_order;
+        std::vector<CardId> uncommon_in_order;
+        std::vector<CardId> rare_in_order;
+
+        for (const CardId cid : JavaCardLibraryOrder::cards) {
+            if (getCardColor(cid) != static_cast<CardColor>(cc)) {
+                continue;
+            }
+            const auto rarity = getCardRarity(cid);
+            if (rarity == CardRarity::COMMON) {
+                common_in_order.push_back(cid);
+            } else if (rarity == CardRarity::UNCOMMON) {
+                uncommon_in_order.push_back(cid);
+            } else if (rarity == CardRarity::RARE) {
+                rare_in_order.push_back(cid);
+            }
         }
 
-        const auto rarity = getCardRarity(cid);
-        if (rarity == CardRarity::COMMON) {
-            common_in_order.push_back(cid);
-        } else if (rarity == CardRarity::UNCOMMON) {
-            uncommon_in_order.push_back(cid);
-        } else if (rarity == CardRarity::RARE) {
-            rare_in_order.push_back(cid);
-        }
+        commonCardPool = common_in_order;
+        uncommonCardPool = uncommon_in_order;
+        rareCardPool = rare_in_order;
     }
-
-
-    commonCardPool = common_in_order;
-    uncommonCardPool = uncommon_in_order;
-    rareCardPool = rare_in_order;
 
     srcCommonCardPool = commonCardPool;
     srcUncommonCardPool = uncommonCardPool;
@@ -1718,22 +1801,25 @@ CardId GameContext::returnTrulyRandomCardFromAvailable(Random &rng, CardId exclu
         }
 
         default: {
-            const CardId* pool = TransformCardPool::getPoolForClass(cc);
-            int poolSize = TransformCardPool::getPoolSizeForClass(cc);
-
-            bool excludeInPool = getCardRarity(exclude) != CardRarity::BASIC &&
-                                  static_cast<CardColor>(cc) == color;
-
-            if (excludeInPool) {
-                int idx = rng.random(poolSize-2);
-                if (pool[idx] == exclude) {
-                    return pool[idx+1];
-                } else {
-                    return pool[idx];
+            std::vector<CardId> pool;
+            pool.reserve(commonCardPool.size() + srcUncommonCardPool.size() + srcRareCardPool.size());
+            for (const auto cid : commonCardPool) {
+                if (cid != exclude) {
+                    pool.push_back(cid);
                 }
-            } else {
-                return pool[rng.random(poolSize-1)];
             }
+            for (const auto cid : srcUncommonCardPool) {
+                if (cid != exclude) {
+                    pool.push_back(cid);
+                }
+            }
+            for (const auto cid : srcRareCardPool) {
+                if (cid != exclude) {
+                    pool.push_back(cid);
+                }
+            }
+
+            return pool[static_cast<std::size_t>(rng.random(static_cast<int>(pool.size() - 1)))];
         }
     }
 }
