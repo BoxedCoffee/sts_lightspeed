@@ -448,10 +448,40 @@ namespace sts {
     }
 
     static CardColor getCardColor(CardId id) {
+        switch (id) {
+            case CardId::BRILLIANCE:
+                return CardColor::PURPLE;
+            case CardId::BRUTALITY:
+                return CardColor::RED;
+            case CardId::BUFFER:
+                return CardColor::BLUE;
+            case CardId::BULLET_TIME:
+                return CardColor::GREEN;
+            case CardId::COLLECT:
+                return CardColor::PURPLE;
+            case CardId::COMBUST:
+                return CardColor::RED;
+            case CardId::COMPILE_DRIVER:
+                return CardColor::BLUE;
+            case CardId::CONCENTRATE:
+                return CardColor::GREEN;
+            default:
+                break;
+        }
         return cardColors[static_cast<int>(id)];
     }
 
     static CardRarity getCardRarity(CardId id) {
+        switch (id) {
+            case CardId::ERUPTION:
+                return CardRarity::UNCOMMON;
+            case CardId::MASTER_REALITY:
+                return CardRarity::UNCOMMON;
+            case CardId::PRESSURE_POINTS:
+                return CardRarity::UNCOMMON;
+            default:
+                break;
+        }
         return cardRarities[static_cast<int>(id)];
     }
 

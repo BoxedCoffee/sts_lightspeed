@@ -102,9 +102,10 @@ void GameContext::initCardPools() {
         }
     }
 
-    commonCardPool.assign(common_in_order.rbegin(), common_in_order.rend());
-    uncommonCardPool.assign(uncommon_in_order.rbegin(), uncommon_in_order.rend());
-    rareCardPool.assign(rare_in_order.rbegin(), rare_in_order.rend());
+
+    commonCardPool = common_in_order;
+    uncommonCardPool = uncommon_in_order;
+    rareCardPool = rare_in_order;
 
     srcCommonCardPool = commonCardPool;
     srcUncommonCardPool = uncommonCardPool;
@@ -1720,8 +1721,8 @@ CardId GameContext::returnTrulyRandomCardFromAvailable(Random &rng, CardId exclu
             const CardId* pool = TransformCardPool::getPoolForClass(cc);
             int poolSize = TransformCardPool::getPoolSizeForClass(cc);
 
-            bool excludeInPool = cardRarities[static_cast<int>(exclude)] != CardRarity::BASIC &&
-                                 static_cast<CardColor>(cc) == color;
+            bool excludeInPool = getCardRarity(exclude) != CardRarity::BASIC &&
+                                  static_cast<CardColor>(cc) == color;
 
             if (excludeInPool) {
                 int idx = rng.random(poolSize-2);
