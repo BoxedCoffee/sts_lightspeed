@@ -69,7 +69,8 @@ std::array<Neow::Option, 4> Neow::getOptions(Random &r) {
 
     rewards[3].r = Bonus::BOSS_RELIC;
     rewards[3].d = Drawback::LOSE_STARTER_RELIC;
-    r.random(0, 0);
+
+    java::Collections::shuffle(rewards.begin(), rewards.begin() + 3, java::Random(r.randomLong()));
 
     return rewards;
 }

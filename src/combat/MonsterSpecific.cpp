@@ -1015,6 +1015,7 @@ void Monster::takeTurn(BattleContext &bc) {     // todo, maybe for monsters that
         // ************ RED SLAVER ************
 
         case MMID::RED_SLAVER_ENTANGLE:
+            miscInfo = 1;
             bc.addToBot(Actions::DebuffPlayer<PS::ENTANGLED>(1));
             bc.addToBot(Actions::RollMove(idx));
             break;
@@ -3461,7 +3462,7 @@ int stasisHelper(Random &rng, ForwardIt begin, ForwardIt end) {
 
     } else {
         const int groupSize = end-begin;
-        return rng.random(groupSize-1);
+        return trace_card_random(rng, "MonsterSpecific::stasisHelper(fallback)", groupSize-1);
     }
 
     fixed_list<StasisPair, CardManager::MAX_GROUP_SIZE> idxList;
@@ -3477,7 +3478,7 @@ int stasisHelper(Random &rng, ForwardIt begin, ForwardIt end) {
 
     std::stable_sort(idxList.begin(), idxList.end(), [](auto p1, auto p2) { return p1.idOrder < p2.idOrder; } );
 
-    const auto idxListSelectIdx = rng.random(idxList.size()-1);
+    const auto idxListSelectIdx = trace_card_random(rng, "MonsterSpecific::stasisHelper", idxList.size()-1);
     return idxList[idxListSelectIdx].groupIdx;
 }
 

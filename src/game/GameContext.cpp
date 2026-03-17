@@ -193,6 +193,11 @@ void GameContext::initCardPools() {
     srcCommonCardPool = commonCardPool;
     srcUncommonCardPool = uncommonCardPool;
     srcRareCardPool = rareCardPool;
+
+    if (cc == CharacterClass::IRONCLAD) {
+        std::reverse(uncommonCardPool.begin(), uncommonCardPool.end());
+        std::reverse(rareCardPool.begin(), rareCardPool.end());
+    }
 }
 
 void GameContext::initFromSave(const SaveFile &s) {
@@ -221,6 +226,7 @@ void GameContext::initFromSave(const SaveFile &s) {
     mathUtilRng = Random(seed, 0);
     merchantRng = Random(seed, s.merchant_seed_count); // arbitrary
     miscRng = Random(seed+floorNum);
+    shuffleRng = Random(seed+floorNum, s.shuffle_seed_count);
     monsterRng = Random(seed, s.monster_seed_count);
 
     cardRarityFactor = s.card_random_seed_randomizer;
@@ -914,6 +920,8 @@ void GameContext::transitionToMapNode(int mapNodeX) {
     const auto r = Random(seed + floorNum);
     miscRng = r;
     shuffleRng = r;
+
+    set_trace_card_random(&cardRandomRng, floorNum);
 
     regainControlAction = [](auto &gs) {
         gs.screenState = ScreenState::MAP_SCREEN;
@@ -1803,7 +1811,7 @@ CardId GameContext::returnTrulyRandomCardFromAvailable(Random &rng, CardId exclu
         default: {
             std::vector<CardId> pool;
             pool.reserve(commonCardPool.size() + srcUncommonCardPool.size() + srcRareCardPool.size());
-            for (const auto cid : commonCardPool) {
+            for (const auto cid : srcCommonCardPool) {
                 if (cid != exclude) {
                     pool.push_back(cid);
                 }

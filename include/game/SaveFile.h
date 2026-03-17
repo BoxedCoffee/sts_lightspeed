@@ -111,6 +111,7 @@ namespace sts {
         int card_random_seed_count;
         int card_seed_count;
         int treasure_seed_count;
+        int shuffle_seed_count = 0;
 
         bool has_emerald_key;
         bool has_ruby_key;

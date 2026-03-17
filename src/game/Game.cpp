@@ -193,7 +193,7 @@ CardId sts::getRandomCurse(Random &rng, CardId exclude) {
 }
 
 CardId sts::getTrulyRandomCard(Random &cardRandomRng, CharacterClass cc) {
-    int idx = cardRandomRng.random(TrulyRandomCardPool::getPoolSizeForClass(cc)-1);
+    int idx = trace_card_random(cardRandomRng, "Game::getTrulyRandomCard", TrulyRandomCardPool::getPoolSizeForClass(cc)-1);
     return TrulyRandomCardPool::getPoolForClass(cc)[idx];
 }
 
@@ -208,19 +208,19 @@ CardId sts::returnTrulyRandomColorlessCardFromAvailable(Random &rng, CardId excl
 
 CardId sts::getTrulyRandomColorlessCardInCombat(Random &cardRandomRng) {
     const auto poolSize = CombatColorlessCardPool::getPoolSize();
-    const auto idx = cardRandomRng.random(poolSize-1);
+    const auto idx = trace_card_random(cardRandomRng, "Game::getTrulyRandomColorlessCardInCombat", poolSize-1);
     return CombatColorlessCardPool::getCardAt(idx);
 }
 
 CardId sts::getTrulyRandomCardInCombat(Random &cardRandomRng, CharacterClass cc) {
     const auto poolSize = CombatCardPool::getPoolSize(cc);
-    const auto idx = cardRandomRng.random(poolSize-1);
+    const auto idx = trace_card_random(cardRandomRng, "Game::getTrulyRandomCardInCombat", poolSize-1);
     return CombatCardPool::getCardAt(cc, idx);
 }
 
 CardId sts::getTrulyRandomCardInCombat(Random &cardRandomRng, const CharacterClass cc, const CardType type) {
     const auto poolSize = CombatTypeCardPool::getPoolSize(cc, type);
-    const auto idx = cardRandomRng.random(poolSize-1);
+    const auto idx = trace_card_random(cardRandomRng, "Game::getTrulyRandomCardInCombatTyped", poolSize-1);
     return CombatTypeCardPool::getCardAt(cc, type, idx);
 }
 

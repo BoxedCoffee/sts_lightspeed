@@ -6,6 +6,9 @@
 #include "combat/BattleContext.h"
 #include "game/Game.h"
 
+#include <cstdlib>
+#include <iostream>
+
 using namespace sts;
 
 Action Actions::SetState(InputState state) {
@@ -180,6 +183,7 @@ Action Actions::DrawCards(int amount) {
 
 Action Actions::EmptyDeckShuffle() {
     return {[=] (BattleContext &bc) {
+        bc.onShuffle();
         java::Collections::shuffle(
                 bc.cards.discardPile.begin(),
                 bc.cards.discardPile.end(),
@@ -204,7 +208,7 @@ Action Actions::ShuffleTempCardIntoDrawPile(CardId id, int count) {
     return {[=] (BattleContext &bc) {
         CardInstance c(id);
         for (int i = 0; i < count; ++i) {
-            const int idx = bc.cards.drawPile.empty() ? 0 : bc.cardRandomRng.random(static_cast<int>(bc.cards.drawPile.size()-1));
+            const int idx = bc.cards.drawPile.empty() ? 0 : trace_card_random(bc.cardRandomRng, "Actions::ShuffleTempCardIntoDrawPile", static_cast<int>(bc.cards.drawPile.size()-1));
             bc.cards.createTempCardInDrawPile(idx, c);
         }
     }};
@@ -241,7 +245,7 @@ Action Actions::MakeTempCardInDrawPile(const CardInstance &c, int amount, bool s
     return {[=](BattleContext &bc) {
         for (int i = 0; i < amount; ++i) {
             if (shuffleInto) {
-                const int idx = bc.cards.drawPile.empty() ? 0 : bc.cardRandomRng.random(static_cast<int>(bc.cards.drawPile.size()-1));
+                const int idx = bc.cards.drawPile.empty() ? 0 : trace_card_random(bc.cardRandomRng, "Actions::MakeTempCardInDrawPile", static_cast<int>(bc.cards.drawPile.size()-1));
                 bc.cards.createTempCardInDrawPile(idx, c);
             }
             // todo else
@@ -357,6 +361,7 @@ Action Actions::ExhaustRandomCardInHand(int count) {
             if (bc.cards.cardsInHand <= 0) {
                 return;
             }
+
             const auto idx = bc.cards.getRandomCardIdxInHand(bc.cardRandomRng);
             auto c = bc.cards.hand[idx];
             bc.cards.removeFromHandAtIdx(idx);
@@ -392,7 +397,7 @@ Action Actions::MadnessAction() {
 //#pragma clang diagnostic push
 //#pragma ide diagnostic ignored "EndlessLoop"
         while (true) {
-            const auto randomIdx = bc.cardRandomRng.random(bc.cards.cardsInHand-1);
+            const auto randomIdx = trace_card_random(bc.cardRandomRng, "Actions::MadnessAction", bc.cards.cardsInHand-1);
             auto &c = bc.cards.hand[randomIdx];
 
             if (haveNonZeroTurnCost) {
@@ -425,7 +430,7 @@ Action Actions::RandomizeHandCost() {
         for (int i = 0; i < bc.cards.cardsInHand; ++i) {
             auto &c = bc.cards.hand[i];
             if (c.cost >= 0) {
-                int newCost = bc.cardRandomRng.random(3);
+                int newCost = trace_card_random(bc.cardRandomRng, "Actions::RandomizeHandCost", 3);
                 c.cost = newCost;
                 c.costForTurn = newCost;
             }
@@ -621,7 +626,7 @@ Action Actions::ViolenceAction(int count) { // todo a faster algorithm for inser
                 if (attackIdxList.empty()) {
                     attackIdxList.push_back(i);
                 } else {
-                    const auto randomIdx = bc.cardRandomRng.random(attackIdxList.size() - 1);
+                    const auto randomIdx = trace_card_random(bc.cardRandomRng, "Actions::AttackRandomEnemy", static_cast<int>(attackIdxList.size() - 1));
                     attackIdxList.insert(randomIdx, i);
                 }
             }
@@ -847,7 +852,7 @@ Action Actions::DrawToHandAction(CardSelectTask task, CardType cardType) {
                 if (count > 0) {
                     // for keeping rng consistent with game
                     // the game creates a temporary list with the skills
-                    bc.cardRandomRng.random(count - 1);
+                    trace_card_random(bc.cardRandomRng, "Actions::ExhaustRandomCardInDrawPile", count - 1);
                 }
                 idx = i;
                 ++count;
@@ -877,7 +882,7 @@ Action Actions::WarcryAction() {
         }
 
         if (bc.cards.cardsInHand == 1) {
-            bc.cardRandomRng.random(1);
+            trace_card_random(bc.cardRandomRng, "Actions::DollysMirrorAction", 1);
             bc.chooseWarcryCard(0);
 
         } else {

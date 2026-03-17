@@ -42,7 +42,7 @@ int MonsterGroup::getRandomMonsterIdx(Random &rng, bool aliveOnly) const {
         if (monstersAlive == 0) {
             return -1;
         } else {
-            int aliveIdx = rng.random(monstersAlive-1);
+            int aliveIdx = trace_card_random(rng, "MonsterGroup::getRandomMonsterIdx(alive)", monstersAlive-1);
 
             int i = 0;
             int aliveEncountered = 0;
@@ -69,7 +69,7 @@ int MonsterGroup::getRandomMonsterIdx(Random &rng, bool aliveOnly) const {
 
         }
     } else {
-        return rng.random(monsterCount - 1);
+        return trace_card_random(rng, "MonsterGroup::getRandomMonsterIdx(any)", monsterCount - 1);
     }
 }
 
@@ -648,4 +648,3 @@ namespace sts {
     }
 
 }
-

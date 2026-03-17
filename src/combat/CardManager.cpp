@@ -10,6 +10,9 @@
 
 #include "sim/search/BattleScumSearcher2.h"
 
+#include <cstdlib>
+#include <iostream>
+
 using namespace sts;
 
 void CardManager::init(const sts::GameContext &gc, BattleContext &bc) {
@@ -24,7 +27,35 @@ void CardManager::init(const sts::GameContext &gc, BattleContext &bc) {
     for (int i = 0; i < idxs.size(); ++i) {
         idxs[i] = i;
     }
-    java::Collections::shuffle(idxs.begin(), idxs.end(), java::Random(bc.shuffleRng.randomLong()));
+
+    const bool debug_shuffle = std::getenv("STS_PARITY_DEBUG_SHUFFLE") != nullptr;
+    if (debug_shuffle) {
+        std::cerr
+            << "SHUFFLE_INIT_PRE"
+            << " floor=" << bc.floorNum
+            << " seed=" << static_cast<std::uint64_t>(bc.seed)
+            << " gc_shuffle_counter=" << gc.shuffleRng.counter
+            << " bc_shuffle_counter=" << bc.shuffleRng.counter
+            << " bc_seed0=" << bc.shuffleRng.seed0
+            << " bc_seed1=" << bc.shuffleRng.seed1
+            << " deck_size=" << gc.deck.size()
+            << '\n';
+    }
+
+    const auto shuffle_long = bc.shuffleRng.randomLong();
+
+    if (debug_shuffle) {
+        std::cerr
+            << "SHUFFLE_INIT_DRAW"
+            << " floor=" << bc.floorNum
+            << " shuffle_long=" << shuffle_long
+            << " bc_shuffle_counter=" << bc.shuffleRng.counter
+            << " bc_seed0=" << bc.shuffleRng.seed0
+            << " bc_seed1=" << bc.shuffleRng.seed1
+            << '\n';
+    }
+
+    java::Collections::shuffle(idxs.begin(), idxs.end(), java::Random(shuffle_long));
 
     drawPile.resize(gc.deck.size());
     discardPile.clear();
@@ -65,6 +96,15 @@ void CardManager::init(const sts::GameContext &gc, BattleContext &bc) {
     int innateCount =  innateIdx - normalCount;
     if (innateCount  > bc.player.cardDrawPerTurn) {
         bc.addToBot( Actions::DrawCards(innateCount-bc.player.cardDrawPerTurn) );
+    }
+
+    const bool debug = std::getenv("STS_PARITY_DEBUG_DRAW_ORDER") != nullptr;
+    if (debug && bc.floorNum == 11) {
+        std::cerr << "DRAW_INIT_DRAW_PILE" << " floor=" << bc.floorNum << " size=" << drawPile.size() << " ids=";
+        for (const auto& c : drawPile) {
+            std::cerr << sts::getCardStringId(c.id) << ',';
+        }
+        std::cerr << " top(back)=" << (drawPile.empty() ? "<empty>" : sts::getCardStringId(drawPile.back().id)) << '\n';
     }
 }
 
@@ -216,7 +256,7 @@ void CardManager::shuffleIntoDrawPile(Random &cardRandomRng, const CardInstance 
     if (drawPile.empty()) {
         moveToDrawPileTop(c);
     } else {
-        int idx = cardRandomRng.random(static_cast<int>(drawPile.size()-1));
+        int idx = trace_card_random(cardRandomRng, "CardManager::shuffleIntoDrawPile", static_cast<int>(drawPile.size()-1));
         insertToDrawPile(idx, c);
     }
 }
@@ -374,7 +414,30 @@ void CardManager::eraseAtIdxInHand(int idx) {
 }
 
 int CardManager::getRandomCardIdxInHand(Random &rng) {
-    return rng.random(cardsInHand-1);
+    const bool debug = std::getenv("STS_PARITY_DEBUG_CARD_RANDOM") != nullptr;
+    if (debug) {
+        std::cerr
+            << "CARD_RANDOM_PICK_PRE"
+            << " rng_counter=" << rng.counter
+            << " rng_seed0=" << rng.seed0
+            << " rng_seed1=" << rng.seed1
+            << " cards_in_hand=" << cardsInHand
+            << '\n';
+    }
+
+    const int idx = trace_card_random(rng, "CardManager::getRandomCardIdxInHand", cardsInHand - 1);
+
+    if (debug) {
+        std::cerr
+            << "CARD_RANDOM_PICK_POST"
+            << " chosen_idx=" << idx
+            << " rng_counter=" << rng.counter
+            << " rng_seed0=" << rng.seed0
+            << " rng_seed1=" << rng.seed1
+            << '\n';
+    }
+
+    return idx;
 }
 
 void CardManager::resetAttributesAtEndOfTurn() {
@@ -398,11 +461,55 @@ void CardManager::draw(BattleContext &bc, int amount) {
     int fireBreathing = bc.player.getStatus<PS::FIRE_BREATHING>();
 
     for (int i = 0; i < amount; i++) {
+        const bool debug = std::getenv("STS_PARITY_DEBUG_DRAW_ORDER") != nullptr;
+        if (debug && bc.floorNum == 11) {
+            std::cerr
+                << "DRAW_BEFORE_POP"
+                << " floor=" << bc.floorNum
+                << " turn=" << (bc.turn + 1)
+                << " draw_size=" << drawPile.size()
+                << " top(back)=" << (drawPile.empty() ? "<empty>" : sts::getCardStringId(drawPile.back().id))
+                << '\n';
+        }
         auto c = popFromDrawPile();
+
+        if (debug && bc.floorNum == 11) {
+            std::cerr
+                << "DRAW_POPPED"
+                << " floor=" << bc.floorNum
+                << " turn=" << (bc.turn + 1)
+                << " card=" << sts::getCardStringId(c.id)
+                << " remaining=" << drawPile.size()
+                << '\n';
+        }
 
         if (bc.player.hasStatus<PS::CONFUSED>()) {
             if (c.cost >= 0) {  // todo status and curses affected by this?
+                const bool debug = std::getenv("STS_PARITY_DEBUG_CARD_RANDOM") != nullptr;
+                if (debug && bc.floorNum == 11) {
+                    std::cerr
+                        << "CONFUSED_COST_PRE"
+                        << " floor=" << bc.floorNum
+                        << " card_random_counter=" << bc.cardRandomRng.counter
+                        << " seed0=" << bc.cardRandomRng.seed0
+                        << " seed1=" << bc.cardRandomRng.seed1
+                        << " card=" << c.getName()
+                        << " cost=" << static_cast<int>(c.cost)
+                        << '\n';
+                }
+
                 const auto newCost = static_cast<std::int8_t>(bc.cardRandomRng.random(3));
+
+                if (debug && bc.floorNum == 11) {
+                    std::cerr
+                        << "CONFUSED_COST_POST"
+                        << " floor=" << bc.floorNum
+                        << " new_cost=" << static_cast<int>(newCost)
+                        << " card_random_counter=" << bc.cardRandomRng.counter
+                        << " seed0=" << bc.cardRandomRng.seed0
+                        << " seed1=" << bc.cardRandomRng.seed1
+                        << '\n';
+                }
                 if (c.cost != newCost) {
                     c.costForTurn = newCost;
                     c.cost = newCost;

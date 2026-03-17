@@ -6,6 +6,9 @@
 #include "game/GameContext.h"
 #include "game/Game.h"
 
+#include <cstdlib>
+#include <iostream>
+
 using namespace sts;
 
 namespace sts {
@@ -28,10 +31,49 @@ void BattleContext::init(const GameContext &gc, MonsterEncounter encounterToInit
     auto startRandom = Random(gc.seed+gc.floorNum);
     aiRng = startRandom;
     monsterHpRng = startRandom;
-    shuffleRng = startRandom;
-    cardRandomRng = gc.cardRandomRng;
+
+    const bool debug_shuffle = std::getenv("STS_PARITY_DEBUG_SHUFFLE") != nullptr;
+    if (debug_shuffle) {
+        std::cerr
+            << "BATTLE_INIT_PRE"
+            << " floor=" << gc.floorNum
+            << " seed=" << static_cast<std::uint64_t>(gc.seed)
+            << " gc_shuffle_counter=" << gc.shuffleRng.counter
+            << " gc_seed0=" << gc.shuffleRng.seed0
+            << " gc_seed1=" << gc.shuffleRng.seed1
+            << '\n';
+    }
+
+    shuffleRng = gc.shuffleRng;
+    cardRandomRng = startRandom;
     miscRng = gc.miscRng;
     potionRng = gc.potionRng;
+
+    set_trace_card_random(&cardRandomRng, floorNum);
+
+    const bool debug_card_random = std::getenv("STS_PARITY_DEBUG_CARD_RANDOM") != nullptr;
+    if (debug_card_random && floorNum == 11) {
+        std::cerr
+            << "BATTLE_CARD_RANDOM_INIT"
+            << " floor=" << floorNum
+            << " gc_card_random_counter=" << gc.cardRandomRng.counter
+            << " gc_seed0=" << gc.cardRandomRng.seed0
+            << " gc_seed1=" << gc.cardRandomRng.seed1
+            << " bc_card_random_counter=" << cardRandomRng.counter
+            << " bc_seed0=" << cardRandomRng.seed0
+            << " bc_seed1=" << cardRandomRng.seed1
+            << '\n';
+    }
+
+    if (debug_shuffle) {
+        std::cerr
+            << "BATTLE_INIT_POST"
+            << " floor=" << gc.floorNum
+            << " bc_shuffle_counter=" << shuffleRng.counter
+            << " bc_seed0=" << shuffleRng.seed0
+            << " bc_seed1=" << shuffleRng.seed1
+            << '\n';
+    }
 
     ascension = gc.ascension;
     outcome = Outcome::UNDECIDED;
@@ -457,6 +499,19 @@ void BattleContext::initRelics(const GameContext &gc) {
 }
 
 void BattleContext::exitBattle(GameContext &g) const {
+    const bool debug_shuffle = std::getenv("STS_PARITY_DEBUG_SHUFFLE") != nullptr;
+    if (debug_shuffle) {
+        std::cerr
+            << "BATTLE_EXIT_PRE"
+            << " floor=" << floorNum
+            << " bc_shuffle_counter=" << shuffleRng.counter
+            << " bc_seed0=" << shuffleRng.seed0
+            << " bc_seed1=" << shuffleRng.seed1
+            << " g_shuffle_counter=" << g.shuffleRng.counter
+            << " g_seed0=" << g.shuffleRng.seed0
+            << " g_seed1=" << g.shuffleRng.seed1
+            << '\n';
+    }
     // do this first so that darkstone periapt is overridden by curHp and maxHp are set afterwards
     const auto &m = monsters.arr[0];
     if (m.id == MonsterId::WRITHING_MASS && m.miscInfo) {
@@ -473,11 +528,22 @@ void BattleContext::exitBattle(GameContext &g) const {
 
     // not sure its really necessary to sync these every time, (i believe colosseum is the only time two battles occur on the same floor)
     g.aiRng = aiRng;
-    g.cardRandomRng = cardRandomRng;
     g.miscRng = miscRng;
     g.monsterHpRng = monsterHpRng;
     g.potionRng = potionRng;
     g.shuffleRng = shuffleRng;
+
+    set_trace_card_random(&g.cardRandomRng, g.floorNum);
+
+    if (debug_shuffle) {
+        std::cerr
+            << "BATTLE_EXIT_POST"
+            << " floor=" << floorNum
+            << " g_shuffle_counter=" << g.shuffleRng.counter
+            << " g_seed0=" << g.shuffleRng.seed0
+            << " g_seed1=" << g.shuffleRng.seed1
+            << '\n';
+    }
 
     g.curHp = player.curHp;
     g.maxHp = player.maxHp;
@@ -1993,7 +2059,7 @@ void BattleContext::onAfterUseCard() {
 
     bool spoonProc = false;
     if (item.exhaustOnUse && player.hasRelic<R::STRANGE_SPOON>()) {
-        spoonProc = cardRandomRng.randomBoolean();
+        spoonProc = trace_card_random_bool(cardRandomRng, "BattleContext::spoonProc");
     }
 
     if (item.exhaustOnUse && !spoonProc) {
@@ -2456,14 +2522,15 @@ void BattleContext::drawCards(int count) {
     int amountToDraw = std::min(10-cards.cardsInHand, count);
 
     if (cards.drawPile.size() < amountToDraw) {
-        const auto temp = amountToDraw-static_cast<int>(cards.drawPile.size());
-        addToTop( Actions::DrawCards(temp) );
-        onShuffle();
-        addToTop( Actions::EmptyDeckShuffle() );
+        const int to_shuffle_draw = amountToDraw - static_cast<int>(cards.drawPile.size());
 
         if (!cards.drawPile.empty()) {
-            drawCards(static_cast<int>(cards.drawPile.size())); // the game adds this to top
+            cardsDrawn += static_cast<int>(cards.drawPile.size());
+            cards.draw(*this, static_cast<int>(cards.drawPile.size()));
         }
+
+        addToTop(Actions::DrawCards(to_shuffle_draw));
+        addToTop(Actions::EmptyDeckShuffle());
         return;
     }
 
@@ -2879,7 +2946,7 @@ void BattleContext::mummifiedHandOnUsePower() {
         return;
     }
 
-    const int selectedListIdx = cardRandomRng.random(0,matchingIdxList.size()-1);
+    const int selectedListIdx = trace_card_random(cardRandomRng, "BattleContext::mummifiedHandOnUsePower", 0, matchingIdxList.size()-1);
     const int selectedHandIdx = matchingIdxList[selectedListIdx];
     cards.hand[selectedHandIdx].setCostForTurn(0);
 }

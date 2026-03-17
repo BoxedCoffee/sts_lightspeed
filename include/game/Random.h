@@ -5,6 +5,9 @@
 #ifndef STS_LIGHTSPEED_RANDOM_H
 #define STS_LIGHTSPEED_RANDOM_H
 
+#include <cstdlib>
+#include <iostream>
+
 namespace java {
 
     class Random {
@@ -67,6 +70,11 @@ namespace java {
 
 
 namespace sts {
+
+    class Random;
+
+    inline thread_local Random* g_trace_card_random_rng = nullptr;
+    inline thread_local int g_trace_card_random_floor = 0;
 
     class Random {
     public:
@@ -207,6 +215,130 @@ namespace sts {
             return static_cast<std::int32_t>(nextLong(n));
         }
     };
+
+    inline void set_trace_card_random(Random* rng, int floor) {
+        g_trace_card_random_rng = rng;
+        g_trace_card_random_floor = floor;
+    }
+
+    inline std::int32_t trace_card_random(Random& rng, const char* site, std::int32_t range) {
+        const char* env = std::getenv("STS_PARITY_TRACE_CARD_RANDOM");
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_CALL"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=random"
+                << " range=" << range
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        const auto v = rng.random(range);
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_RET"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=random"
+                << " value=" << v
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        return v;
+    }
+
+    inline std::int32_t trace_card_random(Random& rng, const char* site, std::int32_t start, std::int32_t end) {
+        const char* env = std::getenv("STS_PARITY_TRACE_CARD_RANDOM");
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_CALL"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=random2"
+                << " start=" << start
+                << " end=" << end
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        const auto v = rng.random(start, end);
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_RET"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=random2"
+                << " value=" << v
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        return v;
+    }
+
+    inline std::int64_t trace_card_random_long(Random& rng, const char* site) {
+        const char* env = std::getenv("STS_PARITY_TRACE_CARD_RANDOM");
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_CALL"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=randomLong"
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        const auto v = rng.randomLong();
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_RET"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=randomLong"
+                << " value=" << v
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        return v;
+    }
+
+    inline bool trace_card_random_bool(Random& rng, const char* site) {
+        const char* env = std::getenv("STS_PARITY_TRACE_CARD_RANDOM");
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_CALL"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=randomBoolean"
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        const auto v = rng.randomBoolean();
+        if (env != nullptr && g_trace_card_random_floor >= 0 && &rng == g_trace_card_random_rng) {
+            std::cerr
+                << "CR_RET"
+                << " floor=" << g_trace_card_random_floor
+                << " site=" << site
+                << " kind=randomBoolean"
+                << " value=" << (v ? 1 : 0)
+                << " counter=" << rng.counter
+                << " seed0=" << rng.seed0
+                << " seed1=" << rng.seed1
+                << '\n';
+        }
+        return v;
+    }
 
 }
 

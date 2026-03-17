@@ -188,6 +188,9 @@ sts::SaveFile::SaveFile(const std::string &json, sts::CharacterClass cc): json(j
     j.at("card_random_seed_count").get_to(card_random_seed_count);
     j.at("card_seed_count").get_to(card_seed_count);
     j.at("treasure_seed_count").get_to(treasure_seed_count);
+    if (j.contains("shuffle_seed_count")) {
+        j.at("shuffle_seed_count").get_to(shuffle_seed_count);
+    }
 
     j.at("has_emerald_key").get_to(has_emerald_key);
     j.at("has_ruby_key").get_to(has_ruby_key);
@@ -283,4 +286,3 @@ void SaveFile::writeJsonToSaveFile(std::ifstream &jsonIs, const std::string &sav
 sts::SaveFile sts::SaveFile::loadFromPath(const std::string &path, sts::CharacterClass cc) {
     return SaveFile(getJsonFromSaveFile(path), cc);
 }
-
